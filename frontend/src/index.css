@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+/*
+ * ─────────────────────────────────────────────────────────────
+ *  DESIGN TOKENS — the single source of truth for the look.
+ *  Change a value here and every component follows.
+ *  The default Tailwind colour palette is disabled on purpose so
+ *  components can only use these tokens (bg-surface, text-ink…).
+ * ─────────────────────────────────────────────────────────────
+ */
+@theme {
+  --color-*: initial;
+
+  /* Base */
+  --color-bg: #ffffff;
+  --color-surface: #ebebeb; /* product tiles, image backgrounds */
+  --color-surface-muted: #f3f3f3; /* inputs, pills, subtle panels */
+  --color-ink: #0b0b0b; /* primary text, dark buttons */
+  --color-ink-soft: #3d3d3d;
+  --color-muted: #8f8f8f; /* secondary text */
+  --color-line: #e0e0e0; /* borders and grid lines */
+  --color-inverse: #ffffff; /* text on dark backgrounds */
+  --color-overlay: rgb(11 11 11 / 0.45); /* modal / drawer backdrop */
+
+  /* Brand */
+  --color-accent: #3cff00; /* signature neon — banners, primary CTA */
+  --color-accent-hover: #34e000;
+  --color-accent-ink: #0b0b0b; /* text on accent */
+  --color-sale: #e1251b;
+
+  /* Feedback */
+  --color-success: #13804b;
+  --color-success-soft: #e3f5ea;
+  --color-warning: #a15c00;
+  --color-warning-soft: #fdf1dc;
+  --color-danger: #c62020;
+  --color-danger-soft: #fbe5e5;
+
+  /* Typography */
+  --font-sans: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: 'Italiana', 'Times New Roman', serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-mega: clamp(2.75rem, 7vw, 6rem);
+  --text-mega--line-height: 0.95;
+
+  --tracking-label: 0.02em;
+
+  /* Radii */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Shadows */
+  --shadow-overlay: 0 24px 60px -12px rgb(11 11 11 / 0.25);
+  --shadow-card: 0 1px 2px rgb(11 11 11 / 0.06);
+
+  /* Motion */
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-slide-in-right: slide-in-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-slide-in-left: slide-in-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-slide-in-top: slide-in-top 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-pulse: pulse 1.6s ease-in-out infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-in-top {
+    from {
+      transform: translateY(-100%);
+    }
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-size: 0.875rem;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ink;
+  }
+  ::selection {
+    @apply bg-accent text-accent-ink;
+  }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility label {
+  /* small uppercase label used across the UI */
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs--line-height);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
