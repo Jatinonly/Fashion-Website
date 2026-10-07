@@ -1,4 +1,9 @@
-/** Applies db/schema.sql to DATABASE_URL. Usage: npm run db:migrate */
+/** migrate.js reads your schema.sql file containing the database structure.
+It sends that SQL to PostgreSQL/Supabase, which creates or updates the tables, indexes, etc.
+You run it when setting up the database or when the schema changes.
+It is not needed for normal queries while your website is running.
+Usage: npm run db:migrate */
+
 import { readFile } from 'node:fs/promises'
 import { closePool, query } from './pool.js'
 

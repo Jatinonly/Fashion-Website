@@ -8,7 +8,6 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { site } from '@/config/site'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useQuery } from '@/hooks/useQuery'
-import { bannerImage } from '@/lib/images'
 import { productService } from '@/services/productService'
 
 async function fetchHomeData() {
@@ -33,16 +32,17 @@ export default function HomePage() {
         <CategoryBanner
           title="Women"
           subtitle="Autumn–winter 2026"
-          image={bannerImage('hero-women', 1200, 1500)}
+          image="/women.png"
           to="/shop/women"
           className="md:aspect-[4/5]"
         />
         <CategoryBanner
           title="Men"
           subtitle="Autumn–winter 2026"
-          image={bannerImage('hero-men', 1200, 1500)}
+          image="/men.png"
           to="/shop/men"
           className="md:aspect-[4/5]"
+          imageClassName="object-[center_43%]"
         />
       </div>
 
@@ -65,8 +65,8 @@ export default function HomePage() {
       <CategoryTiles />
 
       <div className="mt-10 grid sm:mt-14 md:grid-cols-2">
-        <CategoryBanner title="Bags" image={bannerImage('bags')} to="/shop/bags" />
-        <CategoryBanner title="Jewellery" image={bannerImage('jewellery')} to="/shop/jewellery" />
+        <CategoryBanner title="Bags" image="/model_bag.png" to="/shop/bags" />
+        <CategoryBanner title="Jewellery" image="/model_jewellery.png" to="/shop/jewellery" />
       </div>
       {loading || !data ? (
         <ProductGridSkeleton count={4} />

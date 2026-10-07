@@ -47,7 +47,13 @@ function slugify(value) {
     .replace(/(^-|-$)/g, '')
 }
 
-/** Deterministic pseudo-random stock so the catalogue looks the same on every reload. */
+/*
+    stockFor() generates deterministic pseudo-random stock quantities for each product size.
+    It uses a seed made from the product ID and name, converts that seed into a hash value,
+    and then derives stock numbers from the hash. Because the same seed always produces the same result,
+    the stock remains consistent across reloads or repeated seeding instead of changing randomly.
+    It also supports a soldOut flag, which sets stock to zero for all sizes 
+ */
 function stockFor(seed, sizes, soldOut = false) {
   let hash = 0
   for (const char of seed) hash = (hash * 31 + char.charCodeAt(0)) >>> 0

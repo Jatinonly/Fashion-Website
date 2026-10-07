@@ -3,12 +3,25 @@ import { buttonClasses } from '@/components/ui/buttonStyles'
 import { cn } from '@/lib/cn'
 
 /** Full-bleed editorial tile with oversized accent title — the signature home-page block. */
-export function CategoryBanner({ title, subtitle, image, to, cta = 'Discover now', className }) {
+export function CategoryBanner({
+  title,
+  subtitle,
+  image,
+  to,
+  cta = 'Discover now',
+  className,
+  imageClassName,
+}) {
   return (
     <section
       className={cn('relative aspect-[4/5] overflow-hidden bg-ink md:aspect-[3/4]', className)}
     >
-      <img src={image} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
+      <img
+        src={image}
+        alt=""
+        className={cn('absolute inset-0 size-full object-cover', imageClassName)}
+        loading="lazy"
+      />
       <div className="relative flex flex-col items-start gap-3 p-3 sm:p-4">
         <h2 className="text-mega font-medium tracking-tight text-accent uppercase">
           {title}

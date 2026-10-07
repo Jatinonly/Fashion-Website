@@ -1,11 +1,9 @@
-import { bannerImage } from '@/lib/images'
-
 export function AuthShell({ title, subtitle, children }) {
   return (
     <div className="grid min-h-[calc(100dvh-5rem)] md:grid-cols-2">
       <div className="relative hidden bg-ink md:block">
         <img
-          src={bannerImage('auth', 1000, 1300)}
+          src="/login_image.png"
           alt=""
           className="absolute inset-0 size-full object-cover"
         />

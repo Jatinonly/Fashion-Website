@@ -1,4 +1,4 @@
-/** Small input guards. Each returns the cleaned value or throws a 400. */
+/** This file is basically a small validation/cleaning utility for data coming from the frontend.. */
 import { HttpError } from './httpError.js'
 
 export function str(value, label, { min = 1, max = 500 } = {}) {

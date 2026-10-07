@@ -1,4 +1,15 @@
 /** Reads and validates environment variables once at startup. */
+/* So instead of doing this everywhere:
+    process.env.DATABASE_URL
+    process.env.JWT_SECRET
+    process.env.PORT
+
+  your application can do:
+    config.db.url
+    config.jwt.secret
+    config.port
+*/
+
 import { HttpError } from './lib/httpError.js'
 
 function required(name) {
@@ -6,7 +17,7 @@ function required(name) {
   if (!value) {
     throw new HttpError(
       503,
-      `Missing env var ${name}. Copy backend/.env.example to backend/.env and fill it in.`,
+      `Missing env var ${name}.`,
     )
   }
   return value
@@ -23,7 +34,6 @@ export const config = {
       return required('DATABASE_URL')
     },
     ssl: process.env.DATABASE_SSL ?? 'require',
-    caCertPath: process.env.DATABASE_CA_CERT ?? '',
   },
   jwt: {
     get secret() {

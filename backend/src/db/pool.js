@@ -1,9 +1,8 @@
-/**
- * The single Postgres connection pool. All database access goes through `query`
- * or `withTransaction` — raw SQL with $1, $2 … placeholders and a values array.
- * Never interpolate user input into the SQL text.
- */
-import { readFileSync } from 'node:fs'
+/* pool.js mainly contains the PostgreSQL database connection setup.
+- Creates and manages the connection pool (pg.Pool).
+- Provides query() to execute SQL queries safely using $1, $2 parameters.
+- Provides withTransaction() for BEGIN → COMMIT / ROLLBACK operations.
+- Handles SSL settings, connection limits/timeouts, and closing the pool. */
 import pg from 'pg'
 import { config } from '../config.js'
 import { HttpError } from '../lib/httpError.js'
@@ -21,9 +20,7 @@ pg.types.setTypeParser(pg.types.builtins.NUMERIC, Number)
 // Node.js  ═════encrypted connection═════> PostgreSQL     
 function sslOptions() {
   if (config.db.ssl === 'disable') return false
-
-  //CA certificate = a trusted certificate used to verify the database server.
-  if (config.db.caCertPath) return { ca: readFileSync(config.db.caCertPath, 'utf8') }
+  // Keep the connection encrypted without verifying the database server's certificate.
   return { rejectUnauthorized: false }
 }
 
@@ -39,8 +36,8 @@ export function getPool() {
     connectionString: config.db.url,
     ssl: sslOptions(),
     max: 10, //maximum number of database connections in the pool.
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   })
   pool.on('error', (error) => console.error('Postgres pool error:', error.message))
   return pool
@@ -59,12 +56,7 @@ export function query(text, values = []) {
   return getPool().query(text, values)
 }
 
-/**
- * Runs `fn(client)` inside BEGIN/COMMIT, rolling back on any error.
- * @template T
- * @param {(client: pg.PoolClient) => Promise<T>} fn
- * @returns {Promise<T>}
- */
+
 export async function withTransaction(fn) {
   const client = await getPool().connect()
   try {

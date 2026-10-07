@@ -1,12 +1,11 @@
 import { ButtonLink } from '@/components/ui/ButtonLink'
 import { site } from '@/config/site'
-import { bannerImage } from '@/lib/images'
 
 export function Editorial() {
   return (
     <section aria-labelledby="editorial-title" className="border-t border-line">
       <img
-        src={bannerImage('editorial', 1600, 800)}
+        src="/editorial.png"
         alt="Models wearing the autumn–winter collection"
         loading="lazy"
         className="aspect-[4/3] w-full object-cover sm:aspect-[2/1]"

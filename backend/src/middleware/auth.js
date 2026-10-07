@@ -3,6 +3,7 @@ import { config } from '../config.js'
 import { HttpError } from '../lib/httpError.js'
 
 export function signToken(userId) {
+  // {} means there is no custom data in the main payload.
   return jwt.sign({}, config.jwt.secret, {
     subject: userId,
     expiresIn: config.jwt.expiresIn,

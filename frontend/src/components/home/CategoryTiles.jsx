@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom'
 import { site } from '@/config/site'
 import { CATEGORIES } from '@/data/categories'
-import { bannerImage } from '@/lib/images'
+
+const CATEGORY_IMAGES = {
+  women: '/cat_women.png',
+  men: '/cat_men.png',
+  bags: '/bag.png',
+  shoes: '/shoes.png',
+  jewellery: '/jewellery.png',
+}
 
 export function CategoryTiles() {
   return (
@@ -17,7 +24,7 @@ export function CategoryTiles() {
               <Link to={`/shop/${slug}`} className="group block bg-bg">
                 <div className="aspect-[4/5] overflow-hidden bg-surface">
                   <img
-                    src={bannerImage(`category-${slug}`, 600, 750)}
+                    src={CATEGORY_IMAGES[slug]}
                     alt=""
                     loading="lazy"
                     className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
