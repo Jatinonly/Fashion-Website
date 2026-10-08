@@ -41,6 +41,18 @@ export const config = {
     },
     expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   },
+  razorpay: {
+    mock: (process.env.RAZORPAY_MOCK ?? 'false').toLowerCase() === 'true',
+    get keyId() {
+      return required('RAZORPAY_KEY_ID')
+    },
+    get keySecret() {
+      return required('RAZORPAY_KEY_SECRET')
+    },
+    get webhookSecret() {
+      return required('RAZORPAY_WEBHOOK_SECRET')
+    },
+  },
   shipping: {
     freeThreshold: Number(process.env.FREE_SHIPPING_THRESHOLD ?? 2999),
     fee: Number(process.env.SHIPPING_FEE ?? 99),

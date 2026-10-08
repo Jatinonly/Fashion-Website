@@ -5,12 +5,17 @@ import { query } from './db/pool.js'
 import { errorHandler, notFound } from './middleware/errors.js'
 import { authRouter } from './routes/auth.js'
 import { ordersRouter } from './routes/orders.js'
+import { paymentsRouter } from './routes/payments.js'
 import { productsRouter } from './routes/products.js'
 
 export const app = express()
 
-app.disable('x-powered-by')
+app.disable('x-powered-by')  // Disables the X-Powered-By: Express HTTP response header.
 if (config.corsOrigins.length) app.use(cors({ origin: config.corsOrigins }))
+app.use(
+  '/api/payments/razorpay/webhook',
+  express.raw({ type: 'application/json', limit: '100kb' }),
+)
 app.use(express.json({ limit: '100kb' }))
 
 /** GET /api/health — also checks the database connection. */
@@ -26,6 +31,7 @@ app.get('/api/health', async (_req, res) => {
 app.use('/api/auth', authRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/orders', ordersRouter)
+app.use('/api/payments', paymentsRouter)
 
 app.use(notFound)
 app.use(errorHandler)

@@ -52,7 +52,7 @@ function newOrderId() {
 }
 
 /** Row(s) → the `Order` shape the frontend uses (see frontend/src/services/orderService.js). */
-function toOrder(row, itemRows) {
+export function toOrder(row, itemRows) {
   return {
     id: row.id,
     userId: row.user_id,
@@ -98,7 +98,7 @@ function toOrder(row, itemRows) {
   }
 }
 
-async function loadOrders(orderRows, db = { query }) {
+export async function loadOrders(orderRows, db = { query }) {
   if (orderRows.length === 0) return []
   const { rows: itemRows } = await db.query(ITEMS_FOR_ORDERS_SQL, [orderRows.map((row) => row.id)])
   return orderRows.map((row) =>
@@ -144,7 +144,6 @@ ordersRouter.post('/', async (req, res) => {
   const items = parseItems(req.body?.items)
   const address = parseAddress(req.body?.address)
   const method = v.oneOf(req.body?.payment?.method, 'Payment method', ['cod', 'razorpay'])
-  // TODO(razorpay): until /payments/razorpay/verify exists, every order starts as payment "pending".
 
   const order = await withTransaction(async (client) => {
     const productIds = [...new Set(items.map((item) => item.productId))]

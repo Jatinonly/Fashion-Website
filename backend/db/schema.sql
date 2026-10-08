@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS orders_user_created_idx ON orders (user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS orders_razorpay_order_id_key
+  ON orders (razorpay_order_id) WHERE razorpay_order_id IS NOT NULL;
 
 -- Snapshot of each line at the time of purchase (product names/prices can change later).
 CREATE TABLE IF NOT EXISTS order_items (

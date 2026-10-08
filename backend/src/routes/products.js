@@ -40,7 +40,10 @@ function toProduct(row) {
 }
 
 // Shared WHERE clause for the collection + search "base set".
-//   $1 collection   $2 search words (text[], LIKE-escaped)
+// $1 collection   $2 search words (text[], LIKE-escaped)
+// The :: is PostgreSQL's type-casting syntax.
+// BaseFilter ==> (collection conditions) AND (Search condition)
+// collections can be new, sale, men, women,....
 const BASE_FILTER = `
   (
     $1::text = 'all'
@@ -54,12 +57,15 @@ const BASE_FILTER = `
       NOT LIKE '%' || word || '%'
   )`
 
+// Facets are filters that help users narrow down products.
 const FACETS_SQL = `
   SELECT sizes, colours, subcategory, price FROM products
   WHERE ${BASE_FILTER}
   ORDER BY id`
 
-//   $3 subcategory  $4 minPrice  $5 maxPrice  $6 inStockOnly  $7 sizes  $8 colours  $9 sort  $10 limit
+// $3 subcategory  $4 minPrice  $5 maxPrice  $6 inStockOnly  
+// $7 sizes  $8 colours  $9 sort  $10 limit
+// LIST_SQL = "Give me the actual product list the user wants to see"
 const LIST_SQL = `
   SELECT * FROM products
   WHERE ${BASE_FILTER}
@@ -73,7 +79,9 @@ const LIST_SQL = `
     AND ($8::text[] IS NULL OR EXISTS (
       SELECT 1 FROM jsonb_array_elements(colours) AS c WHERE c ->> 'name' = ANY ($8)))
   ORDER BY
-    CASE WHEN $9::text = 'featured' THEN 'bestseller' = ANY (tags) END DESC,
+    CASE 
+      WHEN $9::text = 'featured' THEN 'bestseller' = ANY (tags)
+    END DESC,
     CASE WHEN $9::text = 'price-asc' THEN price END ASC,
     CASE WHEN $9::text = 'price-desc' THEN price END DESC,
     CASE WHEN $9::text = 'rating' THEN rating END DESC,

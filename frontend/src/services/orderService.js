@@ -76,6 +76,26 @@ export async function createOrder(input) {
 }
 
 /**
+ * Keep mock order history in sync with the mock payment result.
+ * @param {string} orderId
+ * @param {'paid' | 'failed'} status
+ * @param {{ razorpayOrderId?: string, razorpayPaymentId?: string }} [details]
+ */
+export async function updateMockPaymentStatus(orderId, status, details = {}) {
+  if (!env.useMockApi) return
+  const updated = orders.read().map((order) =>
+    order.id === orderId
+      ? {
+          ...order,
+          status: status === 'paid' ? 'confirmed' : 'cancelled',
+          payment: { ...order.payment, ...details, status },
+        }
+      : order,
+  )
+  orders.write(updated)
+}
+
+/**
  * @param {string} userId
  * @returns {Promise<Order[]>}
  */
@@ -101,4 +121,4 @@ export async function getOrder(userId, orderId) {
   return order
 }
 
-export const orderService = { createOrder, listOrders, getOrder }
+export const orderService = { createOrder, listOrders, getOrder, updateMockPaymentStatus }

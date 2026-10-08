@@ -8,7 +8,6 @@
  *   4. Backend verifies the signature: HMAC_SHA256(order_id + "|" + payment_id, KEY_SECRET).
  *   5. Only after verification does the backend mark the order as paid.
  *
- * Right now steps 1, 2 and 4 are simulated. Each place to swap is marked TODO(razorpay).
  * The mock is used whenever `env.useMockPayments` is true (see config/env.js).
  */
 import { env } from '@/config/env'
@@ -21,7 +20,8 @@ import { mockRazorpay } from './mockRazorpay'
  * @property {string} id e.g. "order_Nx1y2z", created server-side.
  * @property {number} amount Amount in paise (₹1 = 100 paise).
  * @property {'INR'} currency
- * @property {string} receipt
+ * @property {string} keyId
+ * @property {boolean} [mock] Whether checkout should use the simulated popup.
  */
 
 /**
@@ -37,26 +37,25 @@ export function getRazorpayKeyId() {
 }
 
 /**
- * Step 1 — create a Razorpay order for the given amount (in rupees).
- * @param {number} amountInRupees
- * @param {string} receipt
+ * Step 1 — create a Razorpay order for an existing database order.
+ * The amount is only used by mock mode; real payments use the server's stored total.
+ * @param {string} orderId
+ * @param {number} mockAmountInRupees
  * @returns {Promise<RazorpayOrder>}
  */
-export async function createRazorpayOrder(amountInRupees, receipt) {
+export async function createRazorpayOrder(orderId, mockAmountInRupees) {
   if (!env.useMockPayments) {
-    // TODO(razorpay): backend endpoint calls `razorpay.orders.create({ amount, currency: 'INR', receipt })`
-    // with the key secret and returns the created order.
     return apiRequest('/payments/razorpay/order', {
       method: 'POST',
-      body: JSON.stringify({ amount: amountInRupees, receipt }),
+      body: JSON.stringify({ orderId }),
     })
   }
   await mockDelay(500)
   return {
     id: `order_mock_${Math.random().toString(36).slice(2, 12)}`,
-    amount: Math.round(amountInRupees * 100), // Razorpay works in paise
+    amount: Math.round(mockAmountInRupees * 100),
     currency: 'INR',
-    receipt,
+    keyId: getRazorpayKeyId(),
   }
 }
 
@@ -79,12 +78,11 @@ export function loadRazorpayScript() {
  * @returns {Promise<PaymentOutcome>}
  */
 export async function openRazorpayCheckout(options) {
-  if (env.useMockPayments) {
+  if (env.useMockPayments || options.order.mock) {
     // MOCK: renders <MockRazorpayHost /> which lets you simulate success / failure / dismiss.
     return mockRazorpay.open(options)
   }
 
-  // TODO(razorpay): this is the real Checkout integration — enabled once `env.useMockPayments` is false.
   const loaded = await loadRazorpayScript()
   if (!loaded || !window.Razorpay) {
     return { status: 'failed', reason: 'Could not load Razorpay. Check your connection.' }
@@ -92,7 +90,7 @@ export async function openRazorpayCheckout(options) {
   const Razorpay = window.Razorpay
   return new Promise((resolve) => {
     const instance = new Razorpay({
-      key: getRazorpayKeyId(),
+      key: options.order.keyId || getRazorpayKeyId(),
       amount: options.order.amount,
       currency: options.order.currency,
       name: site.name,
@@ -111,16 +109,15 @@ export async function openRazorpayCheckout(options) {
 
 /**
  * Step 4 — ask the backend to verify the payment signature. Never verify on the client.
+ * @param {string} orderId
  * @param {RazorpaySuccessPayload} payload
  * @returns {Promise<boolean>}
  */
-export async function verifyPayment(payload) {
+export async function verifyPayment(orderId, payload) {
   if (!env.useMockPayments) {
-    // TODO(razorpay): backend computes HMAC_SHA256(`${order_id}|${payment_id}`, KEY_SECRET)
-    // and compares it to razorpay_signature, then marks the order as paid.
     const result = await apiRequest('/payments/razorpay/verify', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ orderId, ...payload }),
     })
     return result.verified
   }
@@ -128,21 +125,33 @@ export async function verifyPayment(payload) {
   return payload.razorpay_signature.startsWith('mock_sig_')
 }
 
-/** Convenience wrapper used by the checkout page: create → open → verify. */
+/** Reports a failed or dismissed checkout so the backend can release reserved stock. */
+export async function reportPaymentFailure(orderId) {
+  if (!env.useMockPayments) {
+    return apiRequest('/payments/razorpay/fail', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    })
+  }
+  await mockDelay(250)
+  return { failed: true }
+}
+
+/** Convenience wrapper used by checkout: create gateway order → open → verify. */
 export async function payWithRazorpay(params) {
-  const order = await createRazorpayOrder(params.amount, params.receipt)
+  const order = await createRazorpayOrder(params.orderId, params.amount)
   const outcome = await openRazorpayCheckout({
     order,
     prefill: params.prefill,
     description: params.description,
   })
-  if (outcome.status !== 'success') return { ...outcome, orderId: order.id }
+  if (outcome.status !== 'success') return { ...outcome, orderId: params.orderId }
 
-  const verified = await verifyPayment(outcome.payload)
+  const verified = await verifyPayment(params.orderId, outcome.payload)
   if (!verified) {
-    return { status: 'failed', reason: 'Payment could not be verified.', orderId: order.id }
+    return { status: 'failed', reason: 'Payment could not be verified.', orderId: params.orderId }
   }
-  return { ...outcome, orderId: order.id }
+  return { ...outcome, orderId: params.orderId, razorpayOrder: order }
 }
 
 export const paymentService = {
@@ -150,6 +159,7 @@ export const paymentService = {
   loadRazorpayScript,
   openRazorpayCheckout,
   verifyPayment,
+  reportPaymentFailure,
   payWithRazorpay,
   getRazorpayKeyId,
 }

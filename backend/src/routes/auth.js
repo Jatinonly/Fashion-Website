@@ -9,6 +9,7 @@ export const authRouter = Router()
 
 const BCRYPT_ROUNDS = 12
 // Compared against when the email doesn't exist, so response time doesn't reveal which emails are registered.
+// bcrypt.hashSync() is the synchronous version of bcrypt.hash() because the code needs the hash immediately so it can store it in DUMMY_HASH
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', BCRYPT_ROUNDS)
 
 function toUser(row) {
@@ -68,7 +69,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
   res.json({ user: toUser(rows[0]) })
 })
 
-/** POST /api/auth/logout — tokens are stateless, so the client just discards it. */
+/** POST /api/auth/logout — extra route for cookie */
 authRouter.post('/logout', (_req, res) => {
   res.status(204).end()
 })

@@ -7,7 +7,7 @@ frontend/   Vite + React 19 + Tailwind v4 storefront (see frontend/README.md)
 backend/    Express 5 API, raw SQL via `pg` (no ORM / query builder)
   db/schema.sql      tables (users, products, orders, order_items)
   src/db/pool.js     the only place that talks to Postgres
-  src/routes/        auth, products, orders
+  src/routes/        auth, products, orders, payments
 reference/  design references
 ```
 
@@ -15,7 +15,7 @@ reference/  design references
 
 ```bash
 npm install                                   # installs both workspaces (run at the repo root)
-cp backend/.env.example backend/.env          # then fill in DATABASE_URL and JWT_SECRET
+cp backend/.env.example backend/.env          # fill in DATABASE_URL, JWT_SECRET, and Razorpay test keys
 cp frontend/.env.example frontend/.env
 npm run db:migrate                            # create tables in Supabase
 npm run db:seed                               # load 43 demo products + demo user

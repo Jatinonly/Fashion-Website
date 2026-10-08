@@ -43,7 +43,7 @@ The scripts below also work inside `frontend/` (`npm run <script> -w frontend` f
 - **Cart:** change quantity (capped at stock), remove items, free-delivery progress bar, and a price summary (MRP, discount, shipping, total).
 - **Checkout** (login required):
   1. Validated Indian address form (10-digit mobile, 6-digit PIN, state list).
-  2. Payment: Razorpay (simulated popup with success, failure and cancel) or cash on delivery.
+  2. Payment: Razorpay Checkout (real with the API configured; simulated in mock mode) or cash on delivery.
   - Shows an order summary throughout.
 - **Login / signup:** validation and fake auth, with a redirect back to where you came from.
 - **Orders:** order history and order detail (status timeline, items, address, payment, totals).
@@ -140,7 +140,7 @@ Each service checks `env.useMockApi` (true when `VITE_API_BASE_URL` is empty). I
 | productService | `GET /products`, `GET /products/:slug`, `GET /products/:id/related`, `GET /products/search` |
 | authService    | `POST /auth/login`, `POST /auth/signup`, `POST /auth/logout`                                |
 | orderService   | `POST /orders`, `GET /orders`, `GET /orders/:id`                                            |
-| paymentService | not built yet: `POST /payments/razorpay/order`, `POST /payments/razorpay/verify`            |
+| paymentService | `POST /payments/razorpay/order`, `POST /payments/razorpay/verify`, `POST /payments/razorpay/fail` |
 
 The backend re-prices the cart and checks stock when creating an order; totals sent by the client are ignored.
 
@@ -150,25 +150,18 @@ The backend re-prices the cart and checks stock when creating an order; totals s
 
 ## Enabling real Razorpay
 
-`src/services/paymentService.js` implements the standard Razorpay Checkout flow. Every place to change is marked `TODO(razorpay)`.
+With a non-empty `VITE_API_BASE_URL`, the backend controls which checkout is used. Set `RAZORPAY_MOCK=true` in `backend/.env` to use the simulated popup while still testing API order creation and stock reservation; no Razorpay keys are needed in this mode. Set `RAZORPAY_MOCK=false` and configure `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` in `backend/.env` for real Razorpay test-mode checkout. The key secret and webhook secret must never be placed in frontend environment variables. Restart the backend after changing these values.
 
-1. **Backend: create order.** `POST /payments/razorpay/order` calls `razorpay.orders.create({ amount: rupees * 100, currency: 'INR', receipt })` using your **key secret** (server only) and returns the order.
-2. **Frontend: set the public key.** Put `VITE_RAZORPAY_KEY_ID=rzp_test_…` (or `rzp_live_…`) in `.env`.
-3. **Turn off the mock.** Make `env.useMockPayments` return `this.useMockApi` in `src/config/env.js` (it's hard-wired to `true` until the backend has the endpoints). Then `paymentService` will:
-   - call your backend to create the order,
-   - load `https://checkout.razorpay.com/v1/checkout.js` (`loadRazorpayScript`),
-   - open `new window.Razorpay({...})` with the order id and prefill (`openRazorpayCheckout`),
-   - send `{ razorpay_order_id, razorpay_payment_id, razorpay_signature }` to `POST /payments/razorpay/verify`.
-4. **Backend: verify the signature.** Compute `HMAC_SHA256(order_id + "|" + payment_id, KEY_SECRET)`, compare it to `razorpay_signature`, then mark the order paid. Adding a webhook (`payment.captured`) is recommended too.
-5. **Remove mock-only code.** Delete `src/services/mockRazorpay.js` and `src/components/checkout/MockRazorpayHost.jsx`, and remove `<MockRazorpayHost />` from `Layout.jsx`.
+Checkout first creates a pending order through `POST /orders`, which prices the cart and reserves stock. It then sends only that database order id to `POST /payments/razorpay/order`; the backend creates the gateway order from its stored total and returns its key id. After checkout, the frontend sends the signature and both Razorpay ids to `POST /payments/razorpay/verify`. A failed or dismissed checkout is reported to `POST /payments/razorpay/fail`, which marks the order cancelled and restores stock.
 
-Cash on delivery skips Razorpay and creates the order with `payment.status = 'pending'`. Until step 4 exists, the backend also records simulated Razorpay payments as `pending`.
+Configure the Razorpay webhook URL as `/api/payments/razorpay/webhook` and subscribe to `payment.captured` and `order.paid`. The webhook signature is verified against the exact raw request body so an order is still marked paid if the customer closes the page before verification completes.
+
+Cash on delivery continues to create an order with payment pending and order status placed. No `RAZORPAY_MOCK` variable is needed in `frontend/.env`: the backend includes a mock flag in its payment-order response, and the frontend uses it to choose the simulated popup. Mock checkout also remains available when `VITE_API_BASE_URL` is empty.
 
 ---
 
 ## TODO / next steps
 
-- Razorpay endpoints on the backend (see the `TODO(razorpay)` markers).
 - Replace placeholder images in `lib/images.js`.
 - Auth: token refresh, password reset and login rate limiting. (The backend hashes passwords with bcrypt; the mock stores plain passwords in localStorage and is for UI work only.)
 - Restock on order cancellation.

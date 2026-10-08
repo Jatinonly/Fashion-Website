@@ -6,11 +6,7 @@ export const env = {
   get useMockApi() {
     return this.apiBaseUrl === ''
   },
-  /**
-   * The backend has no Razorpay endpoints yet, so payments stay simulated even when the API is on.
-   * TODO(razorpay): set to `this.useMockApi` once /payments/razorpay/* exist on the backend.
-   */
   get useMockPayments() {
-    return true
+    return this.useMockApi
   },
 }

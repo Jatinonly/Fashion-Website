@@ -81,6 +81,7 @@ function build(seed, index) {
   const id = `p${String(index + 1).padStart(3, '0')}`
   return {
     id,
+    // slug is a URL-friendly version of the product name, usually used to identify a product in a web URL.
     slug: `${slugify(seed.name)}-${id}`,
     name: seed.name,
     description: seed.description,

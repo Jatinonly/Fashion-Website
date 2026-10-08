@@ -11,7 +11,6 @@ import { ButtonLink } from '@/components/ui/ButtonLink'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatINR, pluralize } from '@/lib/format'
-import { createId } from '@/lib/id'
 import { computePriceSummary } from '@/lib/pricing'
 import { orderService } from '@/services/orderService'
 import { paymentService } from '@/services/paymentService'
@@ -93,16 +92,29 @@ export default function CheckoutPage() {
   const placeOrder = async () => {
     setPlacing(true)
     setFeedback(null)
+    let order
+    let failureReported = false
     try {
-      let payment
+      order = await orderService.createOrder({
+        userId: user.id,
+        items,
+        address,
+        summary,
+        payment: { method, status: 'pending' },
+      })
+
       if (method === 'razorpay') {
         const result = await paymentService.payWithRazorpay({
+          orderId: order.id,
           amount: summary.total,
-          receipt: createId('rcpt_'),
           prefill: { name: address.fullName, email: address.email, contact: address.phone },
           description: pluralize(summary.itemCount, 'item'),
         })
         if (result.status === 'dismissed') {
+          await paymentService.reportPaymentFailure(order.id)
+          failureReported = true
+          await orderService.updateMockPaymentStatus(order.id, 'failed')
+          addOrder({ ...order, status: 'cancelled', payment: { ...order.payment, status: 'failed' } })
           setFeedback({
             tone: 'info',
             message: 'Payment was cancelled. Your bag is saved — you can try again.',
@@ -110,33 +122,53 @@ export default function CheckoutPage() {
           return
         }
         if (result.status === 'failed') {
+          await paymentService.reportPaymentFailure(order.id)
+          failureReported = true
+          await orderService.updateMockPaymentStatus(order.id, 'failed')
+          addOrder({ ...order, status: 'cancelled', payment: { ...order.payment, status: 'failed' } })
           setFeedback({
             tone: 'error',
             message: `Payment failed: ${result.reason} No money was deducted. Please retry or choose cash on delivery.`,
           })
           return
         }
-        payment = {
-          method: 'razorpay',
-          status: 'paid',
+        await orderService.updateMockPaymentStatus(order.id, 'paid', {
           razorpayOrderId: result.payload.razorpay_order_id,
           razorpayPaymentId: result.payload.razorpay_payment_id,
+        })
+        order = {
+          ...order,
+          status: 'confirmed',
+          payment: {
+            ...order.payment,
+            status: 'paid',
+            razorpayOrderId: result.payload.razorpay_order_id,
+            razorpayPaymentId: result.payload.razorpay_payment_id,
+          },
         }
-      } else {
-        payment = { method: 'cod', status: 'pending' }
       }
 
-      const order = await orderService.createOrder({
-        userId: user.id,
-        items,
-        address,
-        summary,
-        payment,
-      })
       addOrder(order)
       navigate(`/orders/${order.id}?placed=1`, { replace: true })
       clearCart()
     } catch (error) {
+      if (order && method === 'razorpay' && !failureReported) {
+        try {
+          await paymentService.reportPaymentFailure(order.id)
+          await orderService.updateMockPaymentStatus(order.id, 'failed')
+          addOrder({
+            ...order,
+            status: 'cancelled',
+            payment: { ...order.payment, status: 'failed' },
+          })
+        } catch (failureError) {
+          setFeedback({
+            tone: 'error',
+            message: `${error instanceof Error ? error.message : 'Could not complete payment.'} We could not release the reserved stock: ${failureError instanceof Error ? failureError.message : 'Please contact support.'}`,
+          })
+          return
+        }
+      }
       setFeedback({
         tone: 'error',
         message:
